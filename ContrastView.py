@@ -1,16 +1,17 @@
+# Import PyQt modules
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
-
-from PIL import Image, ImageEnhance
 
 
 class ContrastView(qtw.QWidget):
     def __init__(self):
         super().__init__()
 
+        # Initialize window attributes
         self.setWindowTitle("Modify Contrast")
         self.setMinimumSize(300, 100)
 
+        # Initialize slider attributes
         hbox = qtw.QHBoxLayout()
 
         self.sld = qtw.QSlider(qtc.Qt.Horizontal, self)
@@ -30,5 +31,11 @@ class ContrastView(qtw.QWidget):
         hbox.addWidget(self.label)
         self.setLayout(hbox)
 
+    # Update display number with changed slider value
     def updateLabel(self, value):
         self.label.setText(str(value))
+
+    # Reset slider to 0
+    def reset(self,):
+        self.sld.setValue(0)
+        self.label.setText(str(0))
