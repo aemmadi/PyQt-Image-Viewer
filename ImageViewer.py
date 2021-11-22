@@ -2,8 +2,11 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
 
-import FilterView as fv
+import ContrastView
+from PIL import Image, ImageQt, ImageEnhance
+
 import sys
+import io
 
 
 class ImageViewer(qtw.QMainWindow):
@@ -12,13 +15,16 @@ class ImageViewer(qtw.QMainWindow):
         self.imageLabel = qtw.QLabel()
         self.imageLabel.setScaledContents(True)
         self.imageScaleFactor = 1.0
+        self.imageBuffer = qtc.QBuffer()
+        self.pilImage = None
+        self.isImageLoaded = False
 
         self.scrollArea = qtw.QScrollArea()
         self.scrollArea.setWidget(self.imageLabel)
         self.scrollArea.setVisible(True)
         self.setCentralWidget(self.scrollArea)
 
-        self.filterView = fv.FilterView()
+        self.contrastView = ContrastView.ContrastView()
 
         self.setWindowTitle("Image Viewer")
         self.resize(800, 600)
@@ -26,6 +32,8 @@ class ImageViewer(qtw.QMainWindow):
     def menuOptions(self):
         self.openImageAction = qtw.QAction(
             "&Open", self, shortcut="Ctrl+O", triggered=self.openImage)
+        self.saveImageAction = qtw.QAction(
+            "&Save Image", self, shortcut="Ctrl+S", triggered=self.saveImage)
 
         self.zoomInAction = qtw.QAction(
             "&Zoom In", self, shortcut="Ctrl++", triggered=lambda: self.zoom(zoomIn=True))
@@ -38,6 +46,7 @@ class ImageViewer(qtw.QMainWindow):
 
         self.fileMenu = qtw.QMenu("&File", self)
         self.fileMenu.addAction(self.openImageAction)
+        self.fileMenu.addAction(self.saveImageAction)
 
         self.viewMenu = qtw.QMenu("&View", self)
         self.viewMenu.addAction(self.zoomInAction)
@@ -52,18 +61,27 @@ class ImageViewer(qtw.QMainWindow):
     def openImage(self, fileName):
         fileDialogOptions = qtw.QFileDialog.Options()
         fileName = qtw.QFileDialog.getOpenFileName(
-            self, "Open Image", "", "Image Files (*.png *.jpg *.bmp)", options=fileDialogOptions)
+            self, "Open Image", "", "Image Files (*.jpg)", options=fileDialogOptions)
 
         if fileName[0]:
             image = qtg.QImage(fileName[0])
-
             if image.isNull():
                 qtw.QMessageBox.information(
                     self, "Image Viewer", "Unable load in %s." % fileName[0])
                 return
 
+            self.imageBuffer.open(qtc.QBuffer.ReadWrite)
+            image.save(self.imageBuffer, "JPG")
+
             self.imageLabel.setPixmap(qtg.QPixmap.fromImage(image))
             self.imageLabel.adjustSize()
+            self.isImageLoaded = True
+
+    def saveImage(self):
+        if self.pilImage is None:
+            return
+
+        self.pilImage.save("edited_image.jpg")
 
     def zoom(self, zoomIn=False, zoomOut=False, resetZoom=False):
 
@@ -90,7 +108,24 @@ class ImageViewer(qtw.QMainWindow):
             print("Something went wrong while zoom operation")
 
     def openFilter(self):
-        self.filterView.show()
+        if not self.isImageLoaded:
+            return
+
+        self.contrastView.show()
+        self.contrastView.sld.valueChanged.connect(self.contrastValueChanged)
+
+    def contrastValueChanged(self):
+        if self.contrastView.sld.value() >= 0:
+            value = (self.contrastView.sld.value() + 100) / 100
+        else:
+            value = (self.contrastView.sld.value() - 100) / 100
+
+        image = Image.open(io.BytesIO(self.imageBuffer.data()))
+        image = ImageEnhance.Contrast(image).enhance(value)
+        self.pilImage = image
+        image = ImageQt.ImageQt(image)
+        image = qtg.QPixmap.fromImage(image)
+        self.imageLabel.setPixmap(image)
 
 
 if __name__ == "__main__":
