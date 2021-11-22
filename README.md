@@ -2,6 +2,9 @@
 
 Image viewer built with python and the Qt5 framework
 
+<img width="1105" alt="Screen Shot 2021-11-22 at 4 27 44 PM" src="https://user-images.githubusercontent.com/33047045/142941850-9657eb87-e41e-40fb-bb54-bc6fbf059912.png">
+
+
 ## Features
 
 - Open `jpg` images using `Ctrl + O` or `File menu -> Open`
